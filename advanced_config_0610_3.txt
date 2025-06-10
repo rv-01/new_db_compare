@@ -1,0 +1,106 @@
+# Advanced DB_Sentinel_util Configuration
+# Full Feature Set Enabled
+
+# Source Database
+source_db:
+  user: "dwh_source"
+  password: "source_password"
+  dsn: "source-dwh:1521/DWHPROD"
+
+# Target Database  
+target_db:
+  user: "dwh_target"
+  password: "target_password"
+  dsn: "target-dwh:1521/DWHPROD"
+
+# Default schema
+schema: "DWH_SCHEMA"
+
+# Multiple tables with different configurations
+tables:
+  # Large fact table with date filtering
+  - table_name: "FACT_SALES"
+    primary_key: ["TRANSACTION_ID", "DATE_KEY"]
+    chunk_size: 50000
+    schema: "SALES_DWH"
+    where_clause: "DATE_KEY >= 20240101"
+    
+  # Dimension table with specific columns
+  - table_name: "DIM_CUSTOMER"
+    primary_key: ["CUSTOMER_KEY"]
+    chunk_size: 25000
+    columns: ["CUSTOMER_KEY", "CUSTOMER_NAME", "EMAIL", "STATUS", "LAST_UPDATED"]
+    
+  # Audit table with complex filtering
+  - table_name: "AUDIT_LOG"
+    primary_key: ["LOG_ID"]
+    chunk_size: 10000
+    where_clause: "LOG_DATE >= TRUNC(SYSDATE) - 30 AND STATUS IN ('ACTIVE', 'PROCESSED')"
+    schema: "AUDIT_SCHEMA"
+
+# Output paths
+paths:
+  audit_log: "./logs/dwh_comparison_audit.log"
+  source_sql_output: "./output/dwh_source_sync.sql"
+  target_sql_output: "./output/dwh_target_sync.sql"
+  comparison_report: "./output/dwh_comparison_report.txt"
+
+# Performance settings for large scale
+performance:
+  max_threads: 12
+  connection_pool_size: 16
+  batch_timeout: 600
+
+# ALL ADVANCED FEATURES ENABLED
+flags:
+  enable_restart: true            # Enable restart/resume functionality
+  enable_audit_table: true       # Create and maintain audit table
+  enable_reverification: true    # Post-comparison verification
+  enable_progress_tracking: true # Show progress bars
+  enable_sql_generation: true    # Generate SQL files
+  enable_detailed_logging: true  # Extra detailed logging
+
+# Restart/Resume Configuration
+restart:
+  cleanup_old_checkpoints: true
+  retention_days: 14
+  save_frequency: 5              # Save checkpoint every 5 batches
+  metadata_table_name: "DB_SENTINEL_CHECKPOINTS"
+
+# Audit Configuration
+audit:
+  audit_table_name: "DB_SENTINEL_AUDIT"
+  log_batch_details: true       # Log individual batch results
+  retain_history_days: 60       # Retain audit history for 60 days
+
+# Advanced logging
+logging:
+  level: "DEBUG"
+  max_file_size: "100MB"
+  backup_count: 5
+
+# Advanced hashing
+hashing:
+  algorithm: "sha256"           # More secure hashing
+  ignore_case: false
+  trim_whitespace: true
+  null_replacement: "__NULL__"
+
+# SQL generation options
+sql_generation:
+  include_schema_prefix: true
+  include_comments: true
+  batch_statements: true
+  statement_batch_size: 50
+
+# Verification options
+verification:
+  batch_size: 2000
+  max_threads: 4
+  skip_existing_keys: true
+
+# Monitoring
+monitoring:
+  show_memory_usage: true
+  show_timing_details: true
+  progress_update_frequency: 2
