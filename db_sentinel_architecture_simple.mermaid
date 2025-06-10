@@ -1,0 +1,40 @@
+flowchart TB
+    A[User runs python db_sentinel.py config.yaml]
+    
+    A --> B[Configuration Manager]
+    B --> C[Table Validator]
+    C --> D[Multi-Table Orchestrator]
+    
+    D --> E[Table Processor 1]
+    D --> F[Table Processor 2] 
+    D --> G[Table Processor 3]
+    D --> H[Table Processor N]
+    
+    E --> I[Thread Pool 1]
+    F --> J[Thread Pool 2]
+    G --> K[Thread Pool 3]
+    H --> L[Thread Pool N]
+    
+    I --> M[Data Fetcher]
+    J --> M
+    K --> M
+    L --> M
+    
+    M --> N[Source Database]
+    M --> O[Target Database]
+    
+    M --> P[Hash Generator]
+    P --> Q[Data Comparator]
+    Q --> R[SQL Generator]
+    
+    R --> S[Output Files]
+    Q --> T[Report Generator]
+    T --> S
+    
+    Q --> U[Metadata Database]
+    U --> V[Checkpoint Storage]
+    
+    S --> W[source_sync_statements.sql]
+    S --> X[target_sync_statements.sql]
+    S --> Y[summary_report.txt]
+    S --> Z[audit.log]

@@ -1,0 +1,52 @@
+flowchart LR
+    A[YAML Config File] --> B[Configuration Parser]
+    B --> C[Table Definitions]
+    
+    C --> D[EMPLOYEES Table Config]
+    C --> E[ORDER_ITEMS Table Config]
+    C --> F[TRANSACTIONS Table Config]
+    C --> G[AUDIT_LOG Table Config]
+    
+    D --> H[Source DB Query Builder]
+    E --> H
+    F --> H
+    G --> H
+    
+    H --> I[Custom SQL Queries]
+    I --> J[Source Database]
+    I --> K[Target Database]
+    
+    J --> L[Source Data Batches]
+    K --> M[Target Data Batches]
+    
+    L --> N[Hash Generator]
+    M --> N
+    
+    N --> O[Row-Level Hashes]
+    O --> P[Hash Comparator]
+    
+    P --> Q[Matching Records]
+    P --> R[Missing in Target]
+    P --> S[Missing in Source]
+    P --> T[Data Mismatches]
+    
+    R --> U[Generate INSERT SQL]
+    S --> V[Generate DELETE SQL]
+    T --> W[Generate UPDATE SQL]
+    
+    U --> X[SQL Files]
+    V --> X
+    W --> X
+    
+    Q --> Y[Statistics Collector]
+    R --> Y
+    S --> Y
+    T --> Y
+    
+    Y --> Z[Summary Report]
+    Z --> AA[HTML Report]
+    Z --> BB[Text Report]
+    Z --> CC[Audit Log]
+    
+    X --> DD[source_sync_statements.sql]
+    X --> EE[target_sync_statements.sql]

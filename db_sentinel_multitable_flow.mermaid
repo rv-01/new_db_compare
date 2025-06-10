@@ -1,0 +1,138 @@
+graph TD
+    %% Configuration Input
+    ConfigFile[📄 config.yaml<br/>Multi-Table Definition]
+    
+    %% Sample Configuration
+    subgraph SampleConfig ["📋 Sample Configuration"]
+        Table1["🏢 EMPLOYEES<br/>• primary_key: [EMPLOYEE_ID]<br/>• chunk_size: 10000<br/>• columns: ALL<br/>• where_clause: null"]
+        Table2["📦 ORDER_ITEMS<br/>• primary_key: [ORDER_ID, ITEM_ID]<br/>• chunk_size: 5000<br/>• columns: [ID, QTY, PRICE]<br/>• where_clause: STATUS='ACTIVE'"]
+        Table3["💰 TRANSACTIONS<br/>• primary_key: [TRANSACTION_ID]<br/>• chunk_size: 15000<br/>• columns: ALL<br/>• where_clause: DATE >= '2024-01-01'"]
+        Table4["📋 AUDIT_LOG<br/>• primary_key: [LOG_ID]<br/>• chunk_size: 2000<br/>• columns: [ID, USER, ACTION]<br/>• where_clause: STATUS='ACTIVE'"]
+    end
+    
+    ConfigFile --> SampleConfig
+    SampleConfig --> TableQueue
+    
+    %% Table Processing Queue
+    TableQueue[🎯 Table Processing Queue<br/>Sequential Table Processing]
+    
+    %% Individual Table Processing
+    TableQueue --> ProcessTable1[⚡ Process EMPLOYEES]
+    TableQueue --> ProcessTable2[⚡ Process ORDER_ITEMS]
+    TableQueue --> ProcessTable3[⚡ Process TRANSACTIONS]
+    TableQueue --> ProcessTable4[⚡ Process AUDIT_LOG]
+    
+    %% Detailed Processing for Each Table
+    ProcessTable1 --> Batch1[📦 Generate Batches<br/>50,000 rows ÷ 10,000 = 5 batches]
+    ProcessTable2 --> Batch2[📦 Generate Batches<br/>275,000 rows ÷ 5,000 = 55 batches]
+    ProcessTable3 --> Batch3[📦 Generate Batches<br/>1,200,000 rows ÷ 15,000 = 80 batches]
+    ProcessTable4 --> Batch4[📦 Generate Batches<br/>80,000 rows ÷ 2,000 = 40 batches]
+    
+    %% Parallel Processing Within Each Table
+    Batch1 --> Thread1_1[🔀 4 Threads<br/>Parallel Batch Processing]
+    Batch2 --> Thread2_1[🔀 6 Threads<br/>Parallel Batch Processing]
+    Batch3 --> Thread3_1[🔀 8 Threads<br/>Parallel Batch Processing]  
+    Batch4 --> Thread4_1[🔀 2 Threads<br/>Parallel Batch Processing]
+    
+    %% Thread Details for One Table (EMPLOYEES example)
+    subgraph EmployeeThreading ["🏢 EMPLOYEES Threading Example"]
+        ET1[Thread 1<br/>Batches: 0, 4]
+        ET2[Thread 2<br/>Batches: 1]
+        ET3[Thread 3<br/>Batches: 2]
+        ET4[Thread 4<br/>Batches: 3]
+    end
+    
+    Thread1_1 --> EmployeeThreading
+    
+    %% Data Processing Details
+    subgraph BatchProcessing ["📊 Batch Processing Detail"]
+        FetchSource[📥 Fetch Source Data<br/>Custom Query with:<br/>• WHERE clause<br/>• Column selection<br/>• ROWNUM pagination]
+        FetchTarget[📥 Fetch Target Data<br/>Same custom query]
+        HashData[🔐 Generate Row Hashes<br/>MD5 of concatenated values]
+        CompareHashes[⚖️ Compare Hashes<br/>Find differences]
+        GenerateSQL[📝 Generate SQL<br/>INSERT/UPDATE/DELETE]
+        SaveCheckpoint[💾 Save Checkpoint<br/>For restart capability]
+    end
+    
+    EmployeeThreading --> BatchProcessing
+    
+    %% SQL Accumulation
+    GenerateSQL --> SQLAccumulator[📝 SQL Statement Accumulator<br/>Thread-safe collection]
+    
+    %% Per-Table Results
+    Thread1_1 --> Result1[📊 EMPLOYEES Results<br/>• Source: 50,000 rows<br/>• Target: 50,000 rows<br/>• Mismatches: 0]
+    
+    Thread2_1 --> Result2[📊 ORDER_ITEMS Results<br/>• Source: 275,000 rows<br/>• Target: 275,450 rows<br/>• Mismatches: 450]
+    
+    Thread3_1 --> Result3[📊 TRANSACTIONS Results<br/>• Source: 1,200,000 rows<br/>• Target: 1,200,000 rows<br/>• Mismatches: 0]
+    
+    Thread4_1 --> Result4[📊 AUDIT_LOG Results<br/>• Source: 80,000 rows<br/>• Target: 79,850 rows<br/>• Mismatches: 150]
+    
+    %% Aggregation
+    Result1 --> Aggregator[📊 Results Aggregator]
+    Result2 --> Aggregator
+    Result3 --> Aggregator
+    Result4 --> Aggregator
+    
+    %% Final Output
+    Aggregator --> FinalReport[📋 Final Summary Report<br/>• Total Tables: 4<br/>• Total Source Rows: 1,605,000<br/>• Total Target Rows: 1,605,300<br/>• Total Mismatches: 600<br/>• Success Rate: 99.96%]
+    
+    SQLAccumulator --> SQLFiles[📄 Generated SQL Files<br/>• source_sync_statements.sql<br/>• target_sync_statements.sql]
+    
+    %% Configuration-Driven Query Examples
+    subgraph QueryExamples ["🔍 Generated Query Examples"]
+        Query1["EMPLOYEES Query:<br/>SELECT *<br/>FROM HR.EMPLOYEES<br/>ORDER BY EMPLOYEE_ID"]
+        
+        Query2["ORDER_ITEMS Query:<br/>SELECT ORDER_ID, ITEM_ID, QUANTITY, PRICE<br/>FROM SALES.ORDER_ITEMS<br/>WHERE STATUS = 'ACTIVE'<br/>ORDER BY ORDER_ID, ITEM_ID"]
+        
+        Query3["TRANSACTIONS Query:<br/>SELECT *<br/>FROM FINANCE.TRANSACTIONS<br/>WHERE TRANSACTION_DATE >= DATE '2024-01-01'<br/>ORDER BY TRANSACTION_ID"]
+        
+        Query4["AUDIT_LOG Query:<br/>SELECT LOG_ID, USER_ID, ACTION<br/>FROM SYSTEM.AUDIT_LOG<br/>WHERE STATUS = 'ACTIVE'<br/>ORDER BY LOG_ID"]
+    end
+    
+    SampleConfig -.-> QueryExamples
+    
+    %% Performance Characteristics
+    subgraph Performance ["⚡ Performance Characteristics"]
+        Perf1["EMPLOYEES:<br/>• Memory: ~400MB<br/>• Duration: ~30 seconds<br/>• Rate: 1,667 rows/sec"]
+        
+        Perf2["ORDER_ITEMS:<br/>• Memory: ~1.2GB<br/>• Duration: ~180 seconds<br/>• Rate: 1,528 rows/sec"]
+        
+        Perf3["TRANSACTIONS:<br/>• Memory: ~4.8GB<br/>• Duration: ~420 seconds<br/>• Rate: 2,857 rows/sec"]
+        
+        Perf4["AUDIT_LOG:<br/>• Memory: ~160MB<br/>• Duration: ~25 seconds<br/>• Rate: 3,200 rows/sec"]
+    end
+    
+    Result1 -.-> Performance
+    Result2 -.-> Performance
+    Result3 -.-> Performance
+    Result4 -.-> Performance
+    
+    %% Restart Capability
+    subgraph RestartCapability ["🔄 Restart Capability"]
+        Checkpoint1[EMPLOYEES: All batches complete ✅]
+        Checkpoint2[ORDER_ITEMS: 47/55 batches complete]
+        Checkpoint3[TRANSACTIONS: 0/80 batches complete]
+        Checkpoint4[AUDIT_LOG: Not started]
+        
+        RestartNote[On restart:<br/>• Skip EMPLOYEES (100% complete)<br/>• Resume ORDER_ITEMS at batch 48<br/>• Start TRANSACTIONS from beginning<br/>• Start AUDIT_LOG from beginning]
+    end
+    
+    SaveCheckpoint -.-> RestartCapability
+    
+    %% Styling
+    classDef config fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    classDef table fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef processing fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px
+    classDef threading fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef results fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    classDef output fill:#e0f2f1,stroke:#00695c,stroke-width:2px
+    classDef performance fill:#f1f8e9,stroke:#558b2f,stroke-width:2px
+    
+    class ConfigFile,SampleConfig config
+    class Table1,Table2,Table3,Table4,ProcessTable1,ProcessTable2,ProcessTable3,ProcessTable4 table
+    class TableQueue,Batch1,Batch2,Batch3,Batch4,BatchProcessing processing
+    class Thread1_1,Thread2_1,Thread3_1,Thread4_1,EmployeeThreading,ET1,ET2,ET3,ET4 threading
+    class Result1,Result2,Result3,Result4,Aggregator results
+    class FinalReport,SQLFiles,SQLAccumulator output
+    class Performance,Perf1,Perf2,Perf3,Perf4 performance

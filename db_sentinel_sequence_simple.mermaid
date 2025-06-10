@@ -1,0 +1,47 @@
+sequenceDiagram
+    participant User
+    participant CLI
+    participant Config
+    participant Validator
+    participant Processor
+    participant SourceDB
+    participant TargetDB
+    participant Reporter
+    
+    User->>CLI: python db_sentinel.py config.yaml
+    CLI->>Config: Load configuration
+    Config-->>CLI: Configuration loaded
+    
+    CLI->>Validator: Validate tables
+    Validator->>SourceDB: Check tables exist
+    Validator->>TargetDB: Check tables exist
+    SourceDB-->>Validator: Tables valid
+    TargetDB-->>Validator: Tables valid
+    Validator-->>CLI: Validation complete
+    
+    CLI->>Processor: Start table processing
+    
+    loop For each table
+        Processor->>SourceDB: Get row count
+        Processor->>TargetDB: Get row count
+        SourceDB-->>Processor: Row count
+        TargetDB-->>Processor: Row count
+        
+        Processor->>Processor: Generate batches
+        
+        loop For each batch in parallel
+            Processor->>SourceDB: Fetch batch data
+            Processor->>TargetDB: Fetch batch data
+            SourceDB-->>Processor: Source data
+            TargetDB-->>Processor: Target data
+            Processor->>Processor: Hash and compare
+            Processor->>Processor: Generate SQL if differences
+        end
+        
+        Processor->>Processor: Aggregate table results
+    end
+    
+    Processor->>Reporter: Generate reports
+    Reporter-->>Processor: Reports created
+    Processor-->>CLI: All tables complete
+    CLI-->>User: DB-Sentinel finished successfully
