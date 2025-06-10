@@ -1,0 +1,130 @@
+# DB_Sentinel_util Configuration File
+# Oracle Database Table Comparison Utility
+
+# Source Database Configuration
+source_db:
+  user: "source_user"
+  password: "source_password"
+  dsn: "source_host:1521/sourcedb"
+
+# Target Database Configuration  
+target_db:
+  user: "target_user"
+  password: "target_password"
+  dsn: "target_host:1521/targetdb"
+
+# Default schema (can be overridden per table)
+schema: "MY_SCHEMA"
+
+# Table Configurations - Support for multiple tables
+tables:
+  # Example 1: Simple table comparison
+  - table_name: "EMPLOYEES"
+    primary_key: ["EMPLOYEE_ID"]
+    chunk_size: 10000
+    # columns: null  # null or omit for all columns
+    # where_clause: null  # null or omit for no WHERE clause
+    # schema: null  # uses default schema above if not specified
+
+  # Example 2: Table with composite primary key and specific columns
+  - table_name: "ORDER_ITEMS"
+    primary_key: ["ORDER_ID", "ITEM_ID"]
+    chunk_size: 5000
+    columns: ["ORDER_ID", "ITEM_ID", "QUANTITY", "PRICE", "STATUS"]
+    schema: "SALES_SCHEMA"
+
+  # Example 3: Table with WHERE clause filter
+  - table_name: "TRANSACTIONS"
+    primary_key: ["TRANSACTION_ID"]
+    chunk_size: 15000
+    where_clause: "TRANSACTION_DATE >= DATE '2024-01-01'"
+    
+  # Example 4: Large table with smaller chunks and filtering
+  - table_name: "AUDIT_LOG"
+    primary_key: ["LOG_ID"]
+    chunk_size: 2000
+    columns: ["LOG_ID", "USER_ID", "ACTION", "TIMESTAMP", "STATUS"]
+    where_clause: "STATUS = 'ACTIVE' AND LOG_DATE >= TRUNC(SYSDATE) - 30"
+
+# Performance Configuration
+performance:
+  max_threads: 4
+  connection_pool_size: 8
+  batch_timeout: 300  # seconds
+
+# Output File Paths
+paths:
+  audit_log: "./logs/db_sentinel_audit.log"
+  source_sql_output: "./output/source_sync_statements.sql"
+  target_sql_output: "./output/target_sync_statements.sql"
+  comparison_report: "./output/comparison_report.txt"
+
+# Feature Control Flags (ALL DISABLED BY DEFAULT)
+flags:
+  enable_restart: false           # Enable restart/resume functionality
+  enable_audit_table: false      # Create and maintain audit table in database
+  enable_reverification: false   # Post-comparison verification of primary keys
+  enable_progress_tracking: true # Show progress bars (minimal overhead)
+  enable_detailed_logging: false # Extra detailed logging
+  enable_sql_generation: true    # Generate sync SQL files
+  
+# Restart/Resume Configuration (only used if enable_restart: true)
+restart:
+  cleanup_old_checkpoints: true
+  retention_days: 7
+  save_frequency: 10  # Save checkpoint every N batches
+  metadata_table_name: "DB_SENTINEL_CHECKPOINTS"
+
+# Audit Configuration (only used if enable_audit_table: true)
+audit:
+  audit_table_name: "DB_SENTINEL_AUDIT"
+  log_batch_details: false  # Log individual batch results
+  retain_history_days: 30   # Days to retain audit history
+  
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  max_file_size: "50MB"
+  backup_count: 3
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Hashing Options
+hashing:
+  algorithm: "md5"  # md5, sha1, sha256
+  ignore_case: false
+  trim_whitespace: true
+  null_replacement: "__NULL__"
+
+# SQL Generation Options
+sql_generation:
+  include_schema_prefix: true
+  include_comments: true
+  batch_statements: false
+  statement_batch_size: 100
+  escape_special_chars: true
+
+# Connection Options
+connection:
+  pool_timeout: 30
+  pool_recycle: 3600
+  retry_attempts: 3
+  retry_delay: 5  # seconds
+
+# Verification Options (only used if enable_reverification: true)
+verification:
+  batch_size: 1000
+  max_threads: 2
+  skip_existing_keys: true
+  
+# Monitoring Options
+monitoring:
+  show_memory_usage: false
+  show_timing_details: false
+  progress_update_frequency: 1  # Update progress every N batches
+
+# Advanced Options
+advanced:
+  chunk_size_auto_adjust: false
+  memory_limit_mb: 1024
+  temp_table_prefix: "DB_SENTINEL_TEMP"
+  parallel_table_processing: false
