@@ -1,0 +1,172 @@
+graph TB
+    %% Start and Configuration
+    Start([🚀 DB-Sentinel Start]) --> LoadConfig[📄 Load config.yaml]
+    LoadConfig --> ValidateConfig{✅ Validate Configuration}
+    ValidateConfig -->|❌ Invalid| ConfigError[❌ Configuration Error<br/>Exit with Error]
+    ValidateConfig -->|✅ Valid| ParseTables[📋 Parse Table Configurations]
+    
+    %% Database Connections
+    ParseTables --> InitDB[🔌 Initialize Database Managers]
+    InitDB --> ConnSource[🗄️ Connect to Source DB<br/>Connection Pool]
+    InitDB --> ConnTarget[🗄️ Connect to Target DB<br/>Connection Pool]
+    
+    %% Table Validation
+    ConnSource --> ValidateTables{🔍 Validate All Tables}
+    ConnTarget --> ValidateTables
+    ValidateTables -->|❌ Invalid| TableError[❌ Table Validation Error<br/>Missing tables/columns]
+    ValidateTables -->|✅ Valid| CheckRestart{🔄 Check Restart Mode}
+    
+    %% Restart Logic
+    CheckRestart -->|Restart Enabled| LoadCheckpoint[📊 Load Checkpoint Data<br/>from Metadata Table]
+    CheckRestart -->|Fresh Start| ClearCheckpoint[🧹 Clear Old Checkpoints]
+    LoadCheckpoint --> FilterTables[🔄 Filter Completed Tables]
+    ClearCheckpoint --> ProcessAllTables[📋 Process All Tables]
+    FilterTables --> ProcessRemaining[📋 Process Remaining Tables]
+    
+    %% Multi-Table Processing Loop
+    ProcessAllTables --> TableLoop{{🔄 For Each Table Configuration}}
+    ProcessRemaining --> TableLoop
+    
+    TableLoop --> GetTableConfig[⚙️ Get Table Config<br/>• table_name<br/>• primary_key<br/>• chunk_size<br/>• columns<br/>• where_clause<br/>• max_threads]
+    
+    %% Per-Table Processing
+    GetTableConfig --> GetRowCounts[📊 Get Row Counts<br/>Source & Target]
+    GetRowCounts --> GenerateBatches[📦 Generate Batches<br/>Based on chunk_size]
+    
+    GenerateBatches --> BatchLoop{{🔄 Process Batches in Parallel}}
+    
+    %% Batch Processing Details
+    BatchLoop --> FetchSource[📥 Fetch Source Batch<br/>SELECT with ROWNUM pagination]
+    BatchLoop --> FetchTarget[📥 Fetch Target Batch<br/>SELECT with ROWNUM pagination]
+    
+    FetchSource --> BuildSourceQuery[🔧 Build Source Query<br/>• Apply WHERE clause<br/>• Select specified columns<br/>• Order by PRIMARY_KEY<br/>• ROWNUM pagination]
+    FetchTarget --> BuildTargetQuery[🔧 Build Target Query<br/>• Apply WHERE clause<br/>• Select specified columns<br/>• Order by PRIMARY_KEY<br/>• ROWNUM pagination]
+    
+    BuildSourceQuery --> ExecuteSource[⚡ Execute Source Query]
+    BuildTargetQuery --> ExecuteTarget[⚡ Execute Target Query]
+    
+    ExecuteSource --> HashSource[🔐 Generate Source Hashes<br/>MD5 of row data]
+    ExecuteTarget --> HashTarget[🔐 Generate Target Hashes<br/>MD5 of row data]
+    
+    %% Comparison Logic
+    HashSource --> CompareHashes{⚖️ Compare Row Hashes}
+    HashTarget --> CompareHashes
+    
+    CompareHashes --> FindMissing[🔍 Find Missing Records<br/>• Missing in Target<br/>• Missing in Source]
+    CompareHashes --> FindMismatches[🔍 Find Hash Mismatches<br/>Same PK, Different Hash]
+    
+    FindMissing --> GenSQL1[📝 Generate SQL<br/>• INSERT for missing in target<br/>• DELETE for missing in source]
+    FindMismatches --> GenSQL2[📝 Generate SQL<br/>• UPDATE for mismatched rows]
+    
+    GenSQL1 --> SaveCheckpoint[💾 Save Batch Checkpoint<br/>to Metadata Table]
+    GenSQL2 --> SaveCheckpoint
+    
+    SaveCheckpoint --> UpdateProgress[📈 Update Progress Bar<br/>Per-table Statistics]
+    UpdateProgress --> NextBatch{🔄 More Batches?}
+    
+    NextBatch -->|Yes| BatchLoop
+    NextBatch -->|No| TableComplete[✅ Table Processing Complete]
+    
+    %% Table Completion
+    TableComplete --> UpdateTableStats[📊 Update Table Statistics<br/>• Row counts<br/>• Mismatch counts<br/>• Processing time]
+    UpdateTableStats --> NextTable{🔄 More Tables?}
+    
+    NextTable -->|Yes| TableLoop
+    NextTable -->|No| AllTablesComplete[✅ All Tables Complete]
+    
+    %% Post-Processing
+    AllTablesComplete --> GenSQLFiles[📄 Generate SQL Files<br/>• source_sync_statements.sql<br/>• target_sync_statements.sql]
+    GenSQLFiles --> PKVerification{🔍 PK Verification Enabled?}
+    
+    PKVerification -->|Yes| VerifyPK[✅ Verify Primary Keys<br/>Check for constraint violations]
+    PKVerification -->|No| GenReports
+    VerifyPK --> GenVerifiedSQL[📄 Generate Verified SQL<br/>target_sync_statements_verified.sql]
+    GenVerifiedSQL --> GenReports[📊 Generate Reports]
+    
+    %% Reporting and Cleanup
+    GenReports --> SummaryReport[📋 Generate Summary Report<br/>• Executive summary<br/>• Per-table statistics<br/>• Performance metrics]
+    GenReports --> AuditLog[📝 Write Audit Logs<br/>• Detailed operation log<br/>• Compliance trail]
+    GenReports --> HTMLReport[🌐 Generate HTML Report<br/>• Visual dashboard<br/>• Detailed breakdown]
+    
+    SummaryReport --> Cleanup[🧹 Cleanup Resources<br/>• Close DB connections<br/>• Clean temp files]
+    AuditLog --> Cleanup
+    HTMLReport --> Cleanup
+    
+    Cleanup --> Success([🎉 DB-Sentinel Complete<br/>All tables compared successfully])
+    
+    %% Error Handling
+    ConfigError --> ErrorExit([❌ Exit with Error])
+    TableError --> ErrorExit
+    
+    %% Parallel Processing Visualization
+    subgraph ThreadPool ["🔀 Multi-Threading (Per Table)"]
+        T1[Thread 1<br/>Batch 0, 4, 8...]
+        T2[Thread 2<br/>Batch 1, 5, 9...]
+        T3[Thread 3<br/>Batch 2, 6, 10...]
+        T4[Thread 4<br/>Batch 3, 7, 11...]
+    end
+    
+    BatchLoop -.-> ThreadPool
+    
+    %% Database Schema
+    subgraph SourceDB ["🗄️ Source Database"]
+        ST1[(Table 1)]
+        ST2[(Table 2)]
+        ST3[(Table N...)]
+    end
+    
+    subgraph TargetDB ["🗄️ Target Database"]
+        TT1[(Table 1)]
+        TT2[(Table 2)]
+        TT3[(Table N...)]
+    end
+    
+    ExecuteSource -.-> SourceDB
+    ExecuteTarget -.-> TargetDB
+    
+    %% Metadata Storage
+    subgraph MetadataDB ["📊 Metadata & Checkpoints"]
+        CheckpointTable[(TABLE_COMPARISON_METADATA)]
+        AuditTable[(TABLE_COMPARISON_AUDIT)]
+    end
+    
+    SaveCheckpoint -.-> MetadataDB
+    LoadCheckpoint -.-> MetadataDB
+    
+    %% Output Files
+    subgraph OutputFiles ["📁 Generated Output"]
+        SQLSource[source_sync_statements.sql]
+        SQLTarget[target_sync_statements.sql]
+        SQLVerified[target_sync_statements_verified.sql]
+        ReportTXT[summary_report.txt]
+        ReportHTML[detailed_report.html]
+        LogFiles[audit.log]
+    end
+    
+    GenSQLFiles -.-> OutputFiles
+    GenVerifiedSQL -.-> OutputFiles
+    GenReports -.-> OutputFiles
+    
+    %% Configuration Details
+    subgraph ConfigDetails ["⚙️ Multi-Table Configuration"]
+        CT1["Table 1:<br/>• primary_key: [ID]<br/>• chunk_size: 10000<br/>• columns: ALL<br/>• where_clause: null"]
+        CT2["Table 2:<br/>• primary_key: [ORDER_ID, LINE_ID]<br/>• chunk_size: 5000<br/>• columns: [ID, QTY, PRICE]<br/>• where_clause: STATUS='ACTIVE'"]
+        CT3["Table N:<br/>• primary_key: [LOG_ID]<br/>• chunk_size: 2000<br/>• columns: [ID, USER, ACTION]<br/>• where_clause: DATE >= '2024-01-01'"]
+    end
+    
+    GetTableConfig -.-> ConfigDetails
+    
+    %% Styling
+    classDef startEnd fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    classDef process fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef decision fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef database fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef error fill:#ffebee,stroke:#c62828,stroke-width:2px
+    classDef parallel fill:#e0f2f1,stroke:#00695c,stroke-width:2px
+    
+    class Start,Success,ErrorExit startEnd
+    class LoadConfig,ParseTables,InitDB,GetRowCounts,GenerateBatches,HashSource,HashTarget,GenSQLFiles,GenReports,Cleanup process
+    class ValidateConfig,CheckRestart,NextBatch,NextTable,PKVerification decision
+    class ConnSource,ConnTarget,SourceDB,TargetDB,MetadataDB database
+    class ConfigError,TableError error
+    class ThreadPool,T1,T2,T3,T4 parallel

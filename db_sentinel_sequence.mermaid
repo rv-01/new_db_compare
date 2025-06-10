@@ -1,0 +1,142 @@
+sequenceDiagram
+    participant User
+    participant CLI as DB-Sentinel CLI
+    participant Config as Configuration Manager
+    participant Validator as Table Validator
+    participant Orchestrator as Multi-Table Orchestrator
+    participant Processor as Table Processor
+    participant Fetcher as Data Fetcher
+    participant SourceDB as Source Database
+    participant TargetDB as Target Database
+    participant Hasher as Hash Generator
+    participant Comparator as Data Comparator
+    participant SQLGen as SQL Generator
+    participant Reporter as Report Generator
+    participant MetaDB as Metadata Database
+
+    %% Initialization Phase
+    User->>CLI: python db_sentinel.py config.yaml
+    CLI->>Config: Load configuration file
+    Config->>Config: Parse YAML structure
+    Config->>Config: Create TableConfig objects
+    Config-->>CLI: Configuration loaded
+
+    CLI->>Validator: Validate all table configurations
+    Validator->>SourceDB: Check table existence & columns
+    Validator->>TargetDB: Check table existence & columns
+    SourceDB-->>Validator: Table metadata
+    TargetDB-->>Validator: Table metadata
+    Validator-->>CLI: Validation results
+
+    %% Multi-Table Processing Loop
+    CLI->>Orchestrator: Start comparison for all tables
+    
+    loop For Each Table in Configuration
+        Orchestrator->>Processor: Process table (e.g., EMPLOYEES)
+        
+        %% Table Setup
+        Processor->>SourceDB: Get row count
+        Processor->>TargetDB: Get row count
+        SourceDB-->>Processor: Source count: 50,000
+        TargetDB-->>Processor: Target count: 50,000
+        
+        Processor->>Processor: Generate batches (5 batches × 10,000 rows)
+        
+        %% Parallel Batch Processing
+        par Batch Processing (Multi-threaded)
+            %% Thread 1: Batch 0
+            Processor->>Fetcher: Fetch batch 0 (rows 0-10,000)
+            Fetcher->>SourceDB: SELECT with WHERE/ORDER BY/ROWNUM
+            Fetcher->>TargetDB: SELECT with WHERE/ORDER BY/ROWNUM
+            SourceDB-->>Fetcher: Source batch data
+            TargetDB-->>Fetcher: Target batch data
+            
+            Fetcher->>Hasher: Generate hashes for source data
+            Fetcher->>Hasher: Generate hashes for target data
+            Hasher-->>Fetcher: Source hashed data
+            Hasher-->>Fetcher: Target hashed data
+            
+            Fetcher->>Comparator: Compare source vs target hashes
+            Comparator->>Comparator: Find missing/mismatched records
+            Comparator-->>Fetcher: Comparison results
+            
+            Fetcher->>SQLGen: Generate sync SQL statements
+            SQLGen-->>Fetcher: SQL statements created
+            
+            Fetcher->>MetaDB: Save batch checkpoint
+            MetaDB-->>Fetcher: Checkpoint saved
+            
+        and
+            %% Thread 2: Batch 1
+            Note over Processor,MetaDB: Thread 2 processes batch 1 (rows 10,001-20,000)
+            
+        and
+            %% Thread 3: Batch 2
+            Note over Processor,MetaDB: Thread 3 processes batch 2 (rows 20,001-30,000)
+            
+        and
+            %% Thread 4: Batch 3
+            Note over Processor,MetaDB: Thread 4 processes batch 3 (rows 30,001-40,000)
+        end
+        
+        %% Table Completion
+        Processor->>Processor: Aggregate batch results
+        Processor->>SQLGen: Finalize SQL for table
+        Processor-->>Orchestrator: Table processing complete
+        
+        %% Progress Update
+        Orchestrator->>User: Update progress (Table 1/8 complete)
+    end
+    
+    %% Final Aggregation Phase
+    Orchestrator->>SQLGen: Generate final SQL files
+    SQLGen->>SQLGen: Write source_sync_statements.sql
+    SQLGen->>SQLGen: Write target_sync_statements.sql
+    SQLGen-->>Orchestrator: SQL files generated
+    
+    %% Optional: Primary Key Verification
+    opt If PK Verification Enabled
+        Orchestrator->>Validator: Verify INSERT statements
+        Validator->>TargetDB: Check for PK conflicts
+        TargetDB-->>Validator: Conflict check results
+        Validator->>SQLGen: Generate verified SQL file
+        SQLGen-->>Validator: Verified SQL created
+        Validator-->>Orchestrator: Verification complete
+    end
+    
+    %% Report Generation
+    Orchestrator->>Reporter: Generate comprehensive reports
+    Reporter->>Reporter: Create summary report
+    Reporter->>Reporter: Create HTML dashboard
+    Reporter->>Reporter: Create audit logs
+    Reporter-->>Orchestrator: Reports generated
+    
+    %% Audit Logging
+    Orchestrator->>MetaDB: Log job completion
+    MetaDB-->>Orchestrator: Audit logged
+    
+    %% Cleanup and Completion
+    Orchestrator->>SourceDB: Close connections
+    Orchestrator->>TargetDB: Close connections
+    Orchestrator->>MetaDB: Close connections
+    Orchestrator-->>CLI: All processing complete
+    
+    CLI-->>User: 🎉 DB-Sentinel completed successfully!
+    
+    %% Results Display
+    Note over User,Reporter: Generated Files:<br/>• source_sync_statements.sql<br/>• target_sync_statements.sql<br/>• summary_report.txt<br/>• detailed_report.html<br/>• audit.log
+
+    %% Error Handling Scenarios
+    opt If Error Occurs
+        alt Configuration Error
+            Config->>CLI: Configuration validation failed
+            CLI-->>User: ❌ Fix configuration and retry
+        else Database Connection Error
+            Validator->>CLI: Cannot connect to database
+            CLI-->>User: ❌ Check database connectivity
+        else Processing Error
+            Processor->>MetaDB: Save checkpoint before failure
+            Processor->>CLI: Error occurred, restart possible
+            CLI-->>User: ⚠️ Check logs, can resume with restart
+        end
+    end
