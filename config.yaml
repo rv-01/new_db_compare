@@ -1,0 +1,53 @@
+# Oracle Database Table Comparison Configuration
+# ==============================================
+
+# Source database connection details
+source_db:
+  user: source_user
+  password: source_pass
+  dsn: source_host:1521/sourcedb
+
+# Target database connection details  
+target_db:
+  user: target_user
+  password: target_pass
+  dsn: target_host:1521/targetdb
+
+# Table configuration
+table_config:
+  schema: my_schema
+  table_name: my_table
+  primary_keys: [id, type]  # List of primary key columns
+  batch_size: 1000         # Number of rows per batch
+  max_threads: 4           # Maximum number of concurrent threads
+
+# Output file paths
+paths:
+  audit_log: ./logs/audit.log
+  source_sql_output: ./output/source_sync_statements.sql
+  target_sql_output: ./output/target_sync_statements.sql
+
+# Feature flags
+flags:
+  enable_reverification: true  # Enable post-comparison PK verification
+  enable_restart: true         # Enable restart/resume capability
+
+# Optional: Logging configuration
+logging:
+  level: INFO  # DEBUG, INFO, WARNING, ERROR
+  
+# Optional: Advanced settings
+advanced:
+  connection_timeout: 30      # Database connection timeout in seconds
+  query_timeout: 300         # Query execution timeout in seconds
+  hash_algorithm: md5        # Hash algorithm (md5, sha1, sha256)
+  
+# Optional: Email notifications (if implemented)
+notifications:
+  enabled: false
+  smtp_server: smtp.company.com
+  smtp_port: 587
+  sender_email: noreply@company.com
+  recipient_emails:
+    - admin@company.com
+    - dba@company.com
