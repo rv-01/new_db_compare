@@ -302,24 +302,42 @@ class CheckpointManager:
     
     def save_checkpoint(self, schema: str, table: str, batch_start: int, batch_end: int, status: str = "COMPLETED"):
         """Save a checkpoint"""
-        insert_sql = f"""
-        INSERT INTO {self.table_name} (SCHEMA_NAME, TABLE_NAME, BATCH_START, BATCH_END, STATUS)
-        VALUES (:schema_name, :table_name, :batch_start, :batch_end, :status)
-        """
-        
-        params = {
-            'schema_name': schema,
-            'table_name': table,
-            'batch_start': batch_start,
-            'batch_end': batch_end,
-            'status': status
-        }
-        
+        # Check if using modern or legacy table structure
         try:
+            # Try modern insert first
+            insert_sql = f"""
+            INSERT INTO {self.table_name} (SCHEMA_NAME, TABLE_NAME, BATCH_START, BATCH_END, STATUS)
+            VALUES (:schema_name, :table_name, :batch_start, :batch_end, :status)
+            """
+            
+            params = {
+                'schema_name': schema,
+                'table_name': table,
+                'batch_start': batch_start,
+                'batch_end': batch_end,
+                'status': status
+            }
+            
             self.db_manager.execute_dml(insert_sql, params)
-            logging.debug(f"Saved checkpoint: {schema}.{table} batch {batch_start}-{batch_end}")
+            
         except Exception as e:
-            logging.warning(f"Failed to save checkpoint: {str(e)}")
+            if "ORA-00947" in str(e):  # Missing ID column for legacy table
+                # Try legacy insert with sequence
+                insert_sql_legacy = f"""
+                INSERT INTO {self.table_name} (ID, SCHEMA_NAME, TABLE_NAME, BATCH_START, BATCH_END, STATUS)
+                VALUES ({self.table_name}_SEQ.NEXTVAL, :schema_name, :table_name, :batch_start, :batch_end, :status)
+                """
+                
+                try:
+                    self.db_manager.execute_dml(insert_sql_legacy, params)
+                except Exception as e2:
+                    logging.warning(f"Failed to save checkpoint: {str(e2)}")
+                    return
+            else:
+                logging.warning(f"Failed to save checkpoint: {str(e)}")
+                return
+        
+        logging.debug(f"Saved checkpoint: {schema}.{table} batch {batch_start}-{batch_end}")
     
     def get_completed_batches(self, schema: str, table: str) -> List[Tuple[int, int]]:
         """Get list of completed batch ranges"""
@@ -825,10 +843,73 @@ class DBSentinelUtility:
         try:
             with open(self.config_file, 'r') as f:
                 config = yaml.safe_load(f)
+            
+            # Validate required fields
+            self._validate_config(config)
+            
             logging.info(f"Loaded configuration from {self.config_file}")
             return config
         except Exception as e:
             raise DBSentinelError(f"Failed to load config file {self.config_file}: {str(e)}")
+    
+    def _validate_config(self, config: Dict):
+        """Validate configuration structure and required fields"""
+        required_sections = ['source_db', 'target_db', 'tables']
+        
+        for section in required_sections:
+            if section not in config:
+                raise DBSentinelError(f"Missing required configuration section: {section}")
+        
+        # Validate database configurations
+        for db_key in ['source_db', 'target_db']:
+            db_config = config[db_key]
+            required_db_fields = ['user', 'password', 'dsn']
+            
+            for field in required_db_fields:
+                if field not in db_config:
+                    raise DBSentinelError(f"Missing required {db_key} field: {field}")
+                if not db_config[field]:
+                    raise DBSentinelError(f"Empty {db_key} field: {field}")
+        
+        # Validate table configurations
+        if not isinstance(config['tables'], list) or not config['tables']:
+            raise DBSentinelError("Tables configuration must be a non-empty list")
+        
+        for i, table_config in enumerate(config['tables']):
+            self._validate_table_config(table_config, i)
+    
+    def _validate_table_config(self, table_config: Dict, index: int):
+        """Validate individual table configuration"""
+        required_fields = ['table_name', 'primary_key']
+        
+        for field in required_fields:
+            if field not in table_config:
+                raise DBSentinelError(f"Table {index}: Missing required field '{field}'")
+        
+        # Validate table name
+        if not table_config['table_name'].strip():
+            raise DBSentinelError(f"Table {index}: table_name cannot be empty")
+        
+        # Validate primary key
+        pk = table_config['primary_key']
+        if not isinstance(pk, list) or not pk:
+            raise DBSentinelError(f"Table {index}: primary_key must be a non-empty list")
+        
+        if not all(isinstance(col, str) and col.strip() for col in pk):
+            raise DBSentinelError(f"Table {index}: primary_key columns must be non-empty strings")
+        
+        # Validate optional fields
+        if 'chunk_size' in table_config:
+            chunk_size = table_config['chunk_size']
+            if not isinstance(chunk_size, int) or chunk_size < 1:
+                raise DBSentinelError(f"Table {index}: chunk_size must be a positive integer")
+        
+        if 'columns' in table_config:
+            columns = table_config['columns']
+            if not isinstance(columns, list):
+                raise DBSentinelError(f"Table {index}: columns must be a list")
+            if not all(isinstance(col, str) and col.strip() for col in columns):
+                raise DBSentinelError(f"Table {index}: column names must be non-empty strings")
     
     def _setup_logging(self):
         """Setup logging configuration"""
