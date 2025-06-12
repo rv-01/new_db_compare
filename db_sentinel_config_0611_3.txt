@@ -1,0 +1,244 @@
+# Advanced DB_Sentinel_utility Configuration
+# Full Feature Set Enabled
+# Version: 1.0.0
+
+# Source Database Configuration
+source_db:
+  user: "dwh_source"
+  password: "source_password"
+  dsn: "source-dwh:1521/DWHPROD"
+
+# Target Database Configuration  
+target_db:
+  user: "dwh_target"
+  password: "target_password"
+  dsn: "target-dwh:1521/DWHPROD"
+
+# Default schema (can be overridden per table)
+schema: "DWH_SCHEMA"
+
+# Multiple tables with different configurations
+tables:
+  # Large fact table with date filtering
+  - table_name: "FACT_SALES"
+    primary_key: ["TRANSACTION_ID", "DATE_KEY"]
+    chunk_size: 50000
+    schema: "SALES_DWH"
+    where_clause: "DATE_KEY >= 20240101"
+    
+  # Dimension table with specific columns
+  - table_name: "DIM_CUSTOMER"
+    primary_key: ["CUSTOMER_KEY"]
+    chunk_size: 25000
+    columns: ["CUSTOMER_KEY", "CUSTOMER_NAME", "EMAIL", "STATUS", "LAST_UPDATED"]
+    
+  # Audit table with complex filtering
+  - table_name: "AUDIT_LOG"
+    primary_key: ["LOG_ID"]
+    chunk_size: 10000
+    where_clause: "LOG_DATE >= TRUNC(SYSDATE) - 30 AND STATUS IN ('ACTIVE', 'PROCESSED')"
+    schema: "AUDIT_SCHEMA"
+    
+  # Standard dimension table
+  - table_name: "DIM_PRODUCT"
+    primary_key: ["PRODUCT_ID"]
+    chunk_size: 15000
+    
+  # Large fact table with composite key
+  - table_name: "FACT_INVENTORY"
+    primary_key: ["LOCATION_ID", "PRODUCT_ID", "SNAPSHOT_DATE"]
+    chunk_size: 30000
+    where_clause: "SNAPSHOT_DATE >= ADD_MONTHS(SYSDATE, -6)"
+
+# Output paths configuration
+paths:
+  # Base directories - will be created if they don't exist
+  sql_output_dir: "./DB_Sentinel_sql"
+  audit_log_dir: "./DB_Sentinel_audit"
+  report_dir: "./DB_Sentinel_report"
+
+# Performance settings for large scale operations
+performance:
+  max_threads: 12                    # Maximum concurrent threads for comparison
+  connection_pool_size: 16           # Database connection pool size
+  batch_timeout: 600                 # Timeout in seconds for batch operations
+  memory_limit_mb: 2048             # Memory limit for batch processing
+  fetch_array_size: 10000           # Oracle fetch array size for better performance
+
+# Feature flags - Enable/disable major functionality
+flags:
+  enable_restart: true               # Enable restart/resume functionality
+  enable_audit_table: true          # Create and maintain audit table in database
+  enable_reverification: true       # Post-comparison verification of SQL statements
+  enable_progress_tracking: true    # Show progress bars during operation
+  enable_sql_generation: true       # Generate SQL sync files
+  enable_detailed_logging: true     # Extra detailed logging for debugging
+  enable_memory_monitoring: true    # Monitor memory usage during operation
+  enable_timing_details: true       # Track detailed timing information
+
+# Restart/Resume Configuration
+restart:
+  cleanup_old_checkpoints: true     # Clean up old checkpoint records on startup
+  retention_days: 14                # Keep checkpoint records for N days
+  save_frequency: 5                 # Save checkpoint every N batches
+  metadata_table_name: "DB_SENTINEL_CHECKPOINTS"  # Name of checkpoint tracking table
+  auto_resume: true                 # Automatically resume from last checkpoint
+
+# Audit Configuration
+audit:
+  audit_table_name: "DB_SENTINEL_AUDIT"    # Name of audit table in database
+  log_batch_details: true                   # Log individual batch results
+  retain_history_days: 60                   # Retain audit history for N days
+  include_sql_statements: false             # Include generated SQL in audit log
+  audit_schema: "DWH_SCHEMA"                # Schema for audit tables
+
+# Advanced logging configuration
+logging:
+  level: "INFO"                      # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  max_file_size: "100MB"            # Maximum log file size before rotation
+  backup_count: 5                   # Number of backup log files to keep
+  log_format: "%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s"
+  enable_console_output: true       # Also log to console/stdout
+  enable_file_output: true          # Enable file logging
+
+# Advanced hashing configuration
+hashing:
+  algorithm: "sha256"               # Hashing algorithm: md5, sha1, sha256
+  ignore_case: false                # Case-insensitive comparison
+  trim_whitespace: true             # Trim leading/trailing whitespace
+  null_replacement: "__NULL__"      # String to represent NULL values
+  date_format: "YYYY-MM-DD HH24:MI:SS"  # Standard date format for hashing
+  number_precision: 10              # Decimal precision for floating point numbers
+
+# SQL generation options
+sql_generation:
+  include_schema_prefix: true       # Include schema name in generated SQL
+  include_comments: true            # Add comments to generated SQL files
+  batch_statements: true            # Group statements in batches with COMMIT
+  statement_batch_size: 50          # Number of statements per batch
+  generate_rollback_sql: false      # Generate rollback SQL files
+  use_bind_variables: false         # Use bind variables instead of literals
+  include_execution_stats: true     # Include execution statistics in SQL files
+
+# Post-comparison verification options
+verification:
+  batch_size: 2000                  # Batch size for verification queries
+  max_threads: 4                    # Maximum threads for verification
+  skip_existing_keys: true          # Skip verification for existing primary keys
+  generate_verification_report: true # Generate detailed verification report
+  verify_updates: true              # Verify UPDATE statements as well as INSERTs
+  check_constraints: true           # Check for constraint violations
+
+# Monitoring and alerting
+monitoring:
+  show_memory_usage: true           # Display memory usage statistics
+  show_timing_details: true         # Show detailed timing for each operation
+  progress_update_frequency: 2      # Update progress every N seconds
+  enable_performance_profiling: false # Enable detailed performance profiling
+  alert_on_high_mismatch_rate: true   # Alert if mismatch rate exceeds threshold
+  mismatch_rate_threshold: 0.05       # Threshold for mismatch rate alerts (5%)
+
+# Database-specific optimizations
+database_optimization:
+  oracle_specific:
+    enable_parallel_query: true     # Use parallel query hints
+    parallel_degree: 4              # Degree of parallelism
+    use_result_cache: false         # Use Oracle result cache
+    optimizer_hints:
+      - "/*+ FIRST_ROWS(1000) */"   # Optimize for fast first rows
+    
+  connection_optimization:
+    prefetch_rows: 1000             # Number of rows to prefetch
+    arraysize: 5000                 # Array fetch size
+    auto_commit: false              # Disable auto-commit for better performance
+
+# Error handling and recovery
+error_handling:
+  max_retries: 3                    # Maximum retry attempts for failed operations
+  retry_delay_seconds: 5            # Delay between retry attempts
+  fail_fast_on_connection_error: true  # Stop immediately on connection errors
+  continue_on_table_error: true     # Continue with other tables if one fails
+  error_threshold_percent: 25       # Stop if error rate exceeds this percentage
+
+# Advanced comparison options
+comparison:
+  ignore_columns: []                # Global list of columns to ignore in comparison
+  case_sensitive_comparison: true   # Case-sensitive string comparison
+  floating_point_precision: 6       # Precision for floating point comparisons
+  date_comparison_precision: "second"  # Precision for date comparisons
+  enable_row_sampling: false        # Enable statistical sampling for large tables
+  sampling_percentage: 10           # Percentage of rows to sample
+
+# Notification settings (future enhancement)
+notifications:
+  enable_email_alerts: false        # Send email notifications
+  email_recipients: []              # List of email addresses
+  smtp_server: ""                   # SMTP server configuration
+  alert_on_completion: false        # Send alert when job completes
+  alert_on_errors: true             # Send alert on errors
+
+# Security settings
+security:
+  encrypt_passwords: false          # Encrypt passwords in memory
+  mask_sensitive_data: true         # Mask sensitive data in logs
+  secure_sql_output: false          # Encrypt generated SQL files
+  audit_access: true                # Audit access to the utility
+
+# Scheduling and automation (future enhancement)
+scheduling:
+  enable_scheduler: false           # Enable built-in scheduler
+  schedule_expression: "0 2 * * *"  # Cron expression for daily at 2 AM
+  max_concurrent_jobs: 1            # Maximum concurrent scheduled jobs
+
+# Custom extensions
+extensions:
+  enable_custom_plugins: false      # Enable custom plugin support
+  plugin_directory: "./plugins"     # Directory for custom plugins
+  custom_validators: []             # List of custom validation functions
+
+# Development and testing options
+development:
+  dry_run_mode: false               # Don't execute actual changes, just simulate
+  debug_memory_usage: false         # Enable detailed memory debugging
+  profile_performance: false        # Enable performance profiling
+  test_mode: false                  # Enable test mode with reduced data sets
+  mock_database_connections: false  # Use mock connections for testing
+
+# Metadata and versioning
+metadata:
+  config_version: "1.0.0"           # Configuration file version
+  utility_version: "1.0.0"          # DB Sentinel utility version
+  created_by: "Solutions Architect"  # Creator information
+  created_date: "2025-01-01"        # Creation date
+  last_modified: "2025-01-01"       # Last modification date
+  environment: "PRODUCTION"          # Environment identifier
+
+# Custom SQL templates (advanced users)
+sql_templates:
+  insert_template: |
+    INSERT INTO {schema}.{table} ({columns})
+    VALUES ({values});
+  
+  update_template: |
+    UPDATE {schema}.{table}
+    SET {set_clause}
+    WHERE {where_clause};
+  
+  delete_template: |
+    DELETE FROM {schema}.{table}
+    WHERE {where_clause};
+
+# Data type specific handling
+data_types:
+  clob_comparison_method: "hash"     # How to compare CLOB columns: hash, length, content
+  blob_comparison_method: "hash"     # How to compare BLOB columns: hash, length, ignore
+  timestamp_precision: "millisecond" # Precision for timestamp comparisons
+  handle_timezone_differences: true  # Account for timezone differences
+
+# Cleanup and maintenance
+maintenance:
+  auto_cleanup_temp_files: true     # Automatically clean up temporary files
+  temp_file_retention_hours: 24     # Keep temporary files for N hours
+  archive_old_reports: true         # Archive old report files
+  archive_retention_days: 90        # Keep archived files for N days
+  vacuum_checkpoint_table: true     # Regularly vacuum checkpoint table
