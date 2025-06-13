@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DB Sentinel Utility - Web Interface Mockup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #fafafa;
+            color: #262730;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #1f77b4 0%, #145a8c 100%);
+            color: white;
+            padding: 1.5rem;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .logo .icon {
+            font-size: 2rem;
+            margin-right: 0.5rem;
+        }
+
+        .nav-section {
+            margin-bottom: 2rem;
+        }
+
+        .nav-section h3 {
+            color: #b8d4f0;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            margin: 0.25rem 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: white;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.15);
+            transform: translateX(4px);
+        }
+
+        .nav-item.active {
+            background: rgba(255,255,255,0.2);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .nav-item .icon {
+            margin-right: 0.75rem;
+            font-size: 1.2rem;
+        }
+
+        .status-indicator {
+            background: rgba(255,255,255,0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-ready { background: #4CAF50; }
+        .status-running { background: #FF9800; animation: pulse 1.5s infinite; }
+        .status-error { background: #F44336; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .main-title {
+            font-size: 2.5rem;
+            color: #1f77b4;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.2rem;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* Cards and Sections */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            border: 1px solid #e0e0e0;
+        }
+
+        .section-header {
+            font-size: 1.5rem;
+            color: #2e8b57;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-header .icon {
+            margin-right: 0.5rem;
+        }
+
+        /* Form Elements */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #1f77b4;
+            box-shadow: 0 0 0 3px rgba(31, 119, 180, 0.1);
+        }
+
+        .form-textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .form-help {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 120px;
+        }
+
+        .btn .icon {
+            margin-right: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1f77b4, #145a8c);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(31, 119, 180, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4CAF50, #388E3C);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #FF9800, #F57C00);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #F44336, #D32F2F);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 2px solid #ddd;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        /* Status Messages */
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .alert .icon {
+            margin-right: 0.75rem;
+            font-size: 1.2rem;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        /* Progress Bars */
+        .progress-container {
+            margin: 1rem 0;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 24px;
+            background: #f0f0f0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #66BB6A);
+            border-radius: 12px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shine 2s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .data-table th {
+            background: #f8f9fa;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .data-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-running {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border-left: 4px solid #1f77b4;
+            transition: transform 0.2s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1f77b4;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* File List */
+        .file-list {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s;
+        }
+
+        .file-item:hover {
+            background: #f8f9fa;
+        }
+
+        .file-icon {
+            margin-right: 1rem;
+            font-size: 1.5rem;
+            color: #666;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .file-meta {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Charts Container */
+        .chart-container {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            height: 400px;
+            position: relative;
+        }
+
+        .chart-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            background: #f8f9fa;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        /* Log Viewer */
+        .log-viewer {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            border-radius: 8px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .log-line {
+            margin-bottom: 0.25rem;
+            padding: 0.25rem 0;
+        }
+
+        .log-timestamp {
+            color: #569cd6;
+        }
+
+        .log-level-info {
+            color: #4ec9b0;
+        }
+
+        .log-level-warning {
+            color: #dcdcaa;
+        }
+
+        .log-level-error {
+            color: #f44747;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                padding: 1rem;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Connection Test Results */
+        .connection-test {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+
+        .connection-success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .connection-error {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <div class="sidebar">
+            <div class="logo">
+                <span class="icon">🛡️</span>
+                <span>DB Sentinel</span>
+            </div>
+
+            <div class="nav-section">
+                <h3>Navigation</h3>
+                <a href="#" class="nav-item active" data-page="config">
+                    <span class="icon">📋</span>
+                    <span>Configuration</span>
+                </a>
+                <a href="#" class="nav-item" data-page="execution">
+                    <span class="icon">🚀</span>
+                    <span>Execution</span>
+                </a>
+                <a href="#" class="nav-item" data-page="results">
+                    <span class="icon">📊</span>
+                    <span>Results</span>
+                </a>
+                <a href="#" class="nav-item" data-page="logs">
+                    <span class="icon">📝</span>
+                    <span>Logs</span>
+                </a>
+                <a href="#" class="nav-item" data-page="settings">
+                    <span class="icon">⚙️</span>
+                    <span>Settings</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <h3>Quick Actions</h3>
+                <button class="btn btn-secondary" style="width: 100%; margin-bottom: 0.5rem;">
+                    <span class="icon">💾</span>
+                    Save Config
+                </button>
+                <button class="btn btn-secondary" style="width: 100%;">
+                    <span class="icon">📁</span>
+                    Load Config
+                </button>
+            </div>
+
+            <div class="status-indicator">
+                <h3 style="margin-bottom: 1rem;">Status</h3>
+                <div>
+                    <span class="status-dot status-ready"></span>
+                    <span>Ready</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <div class="header">
+                <h1 class="main-title">🛡️ DB Sentinel Utility</h1>
+                <p class="subtitle">Interactive Oracle Database Table Comparison Tool</p>
+            </div>
+
+            <!-- Configuration Page -->
+            <div class="page active" id="config-page">
+                <div class="card fade-in">
+                    <h2 class="section-header">
+                        <span class="icon">🔗</span>
+                        Database Configuration
+                    </h2>
+                    
+                    <div class="form-grid">
+                        <div>
+                            <h3 style="margin-bottom: 1rem; color: #1f77b4;">🔗 Source Database</h3>
+                            <div class="form-group">
+                                <label class="form-label">Username</label>
+                                <input type="text" class="form-input" value="dwh_source" placeholder="Enter username">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Password</label>
+                                <input type="password" class="form-input" placeholder="Enter password">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">DSN</label>
+                                <input type="text" class="form-input" value="source-dwh:1521/DWHPROD" placeholder="host:port/service">
+                                <div class="form-help">Example: localhost:1521/XEPDB1</div>
+                            </div>
+                            <button class="btn btn-primary">
+                                <span class="icon">🧪</span>
+                                Test Connection
+                            </button>
+                            <div class="connection-test connection-success">
+                                <strong>✅ Connection Successful!</strong><br>
+                                Response time: 45ms
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 style="margin-bottom: 1rem; color: #1f77b4;">🎯 Target Database</h3>
+                            <div class="form-group">
+                                <label class="form-label">Username</label>
+                                <input type="text" class="form-input" value="dwh_target" placeholder="Enter username">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Password</label>
+                                <input type="password" class="form-input" placeholder="Enter password">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">DSN</label>
+                                <input type="text" class="form-input" value="target-dwh:1521/DWHPROD" placeholder="host:port/service">
+                                <div class="form-help">Example: localhost:1521/XEPDB1</div>
+                            </div>
+                            <button class="btn btn-primary">
+                                <span class="icon">🧪</span>
+                                Test Connection
+                            </button>
+                            <div class="connection-test connection-success">
+                                <strong>✅ Connection Successful!</strong><br>
+                                Response time: 52ms
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card fade-in">
+                    <h2 class="section-header">
+                        <span class="icon">🗂️</span>
+                        Schema & Tables
+                    </h2>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Default Schema</label>
+                        <input type="text" class="form-input" value="DWH_SCHEMA" placeholder="Enter default schema name">
+                        <div class="form-help">Default schema name (can be overridden per table)</div>
+                    </div>
+
+                    <h3 style="margin: 2rem 0 1rem 0;">📊 Configured Tables</h3>
+                    
+                    <div class="card" style="background: #f8f9fa;">
+                        <h4 style="margin-bottom: 1rem;">📊 FACT_SALES</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.9rem;">
+                            <div><strong>Schema:</strong> SALES_DWH</div>
+                            <div><strong>Primary Key:</strong> TRANSACTION_ID, DATE_KEY</div>
+                            <div><strong>Chunk Size:</strong> 50,000</div>
+                            <div><strong>WHERE Clause:</strong> DATE_KEY >= 20240101</div>
+                        </div>
+                        <div class="btn-group" style="margin-top: 1rem;">
+                            <button class="btn btn-secondary">✏️ Edit</button>
+                            <button class="btn btn-danger">🗑️ Remove</button>
+                        </div>
+                    </div>
+
+                    <div class="card" style="background: #f8f9fa;">
+                        <h4 style="margin-bottom: 1rem;">📊 DIM_CUSTOMER</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.9rem;">
+                            <div><strong>Schema:</strong> Default</div>
+                            <div><strong>Primary Key:</strong> CUSTOMER_KEY</div>
+                            <div><strong>Chunk Size:</strong> 25,000</div>
+                            <div><strong>Columns:</strong> CUSTOMER_KEY, CUSTOMER_NAME, EMAIL, STATUS</div>
+                        </div>
+                        <div class="btn-group" style="margin-top: 1rem;">
+                            <button class="btn btn-secondary">✏️ Edit</button>
+                            <button class="btn btn-danger">🗑️ Remove</button>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-success" style="margin-top: 1rem;">
+                        <span class="icon">➕</span>
+                        Add New Table
+                    </button>
+                </div>
+
+                <div class="card fade-in">
+                    <h2 class="section-header">
+                        <span class="icon">⚡</span>
+                        Performance & Features
+                    </h2>
+                    
+                    <div class="form-grid">
+                        <div>
+                            <h4 style="margin-bottom: 1rem;">Performance Settings</h4>
+                            <div class="form-group">
+                                <label class="form-label">Max Threads: <span style="color: #1f77b4;">8</span></label>
+                                <input type="range" min="1" max="20" value="8" style="width: 100%;">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Connection Pool Size: <span style="color: #1f77b4;">12</span></label>
+                                <input type="range" min="2" max="50" value="12" style="width: 100%;">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 style="margin-bottom: 1rem;">Feature Flags</h4>
+                            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                <label style="display: flex; align-items: center;">
+                                    <input type="checkbox" style="margin-right: 0.5rem;">
+                                    <span>🔄 Enable Restart/Resume</span>
+                                </label>
+                                <label style="display: flex; align-items: center;">
+                                    <input type="checkbox" checked style="margin-right: 0.5rem;">
+                                    <span>📊 Enable Audit Table</span>
+                                </label>
+                                <label style="display: flex; align-items: center;">
+                                    <input type="checkbox" checked style="margin-right: 0.5rem;">
+                                    <span>🔍 Enable Reverification</span>
+                                </label>
+                                <label style="display: flex; align-items: center;">
+                                    <input type="checkbox" checked style="margin-right: 0.5rem;">
+                                    <span>📈 Enable Progress Tracking</span>
+                                </label>
+                                <label style="display: flex; align-items: center;">
+                                    <input type="checkbox" checked style="margin-right: 0.5rem;">
+                                    <span>📝 Enable SQL Generation</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Execution Page -->
+            <div class="page" id="execution-page">
+                <div class="alert alert-info">
+                    <span class="icon">🟡</span>
+                    <strong>Status:</strong> Comparison in progress...
+                </div>
+
+                <div class="card fade-in">
+                    <h2 class="section-header">
+                        <span class="icon">📋</span>
+                        Configuration Summary
+                    </h2>
+                    
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">3</div>
+                            <div class="metric-label">Tables to Compare</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">8</div>
+                            <div class="metric-label">Max Threads</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">12</div>
+                            <div class="metric-label">Connection Pool</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">5</div>
+                            <div class="metric-label">Features Enabled</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card fade-in">
+                    <h2 class="section-header">
+                        <span class="icon">🎮</span>
+                        Execution Controls
+                    </h2>
+                    
+                    <div class="btn-group">
+                        <button class="btn btn-success" disabled>
+                            <span class="icon">🚀</span>
+                            Start Comparison
+                        </button>
+                        <button class="btn btn-warning">
+                            <span class="icon">⏹️</span>
+                            Stop
+                        </button>
+                        <button class="btn btn-secondary">
+                            <span class="icon">🔄</span>
+                            Reset
+                        </button>
+                        <button class="btn btn-primary">
+                            <span class="icon">📋</span>
+                            Validate Config
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card fade-in">
+                    <h2 class="section-header">
+                        <span class="icon">📊</span>
+                        Progress Monitoring
+                    </h2>
+                    
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Processing: FACT_SALES</span>
+                            <span>75%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 75%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Processing: DIM_CUSTOMER</span>
+                            <span>45%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 45%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Processing: AUDIT_LOG</span>
+                            <span>12%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 12%;"></div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 1.5rem; font-size: 0.9rem; color: #666;">
+                        <strong>Overall Progress:</strong> 44% complete | Estimated time remaining: 12 minutes
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Page -->
+            <div class="page" id="results-page">
+                <div class="alert alert-success">
+                    <span class="icon">🟢</span>
+                    <strong>Status:</strong> Comparison completed successfully
+                </div>
+
+                <div class="card fade-in">
+                    <h2 class="section-header">
+                        <span class="icon">📈</span>
+                        Summary Metrics
+                    </h2>
+                    
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">3</div>
+                            <div class="metric-label">Total Tables</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">3</div>
+                            <div class="metric-label">Successful</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">1,250</div>
+                            <div class="metric-label">Total Mismatches</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">2.1M</div>
+                            <div class="metric-label">Total Rows</div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem;">
+                        <div class="chart-container">
+                            <div class="chart-placeholder">
+                                📊 Mismatches by Table Chart<br>
+                                <small>(Interactive bar chart showing mismatches per table)</small>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <div class="chart-placeholder">
+                                🥧 Comparison Status Chart<br>
+                                <small>(Pie chart showing success/failure distribution)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card fade-in">
+                    <h2 class="section-header">
+                        <span class="icon">📋</span>
+                        Detailed Results
+                    </h2>
+                    
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Table Name</th>
+                                <th>Schema</th>
+                                <th>Source Rows</th>
+                                <th>Target Rows</th>
+                                <th>Mismatches</th>
+                                <th>Duration</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>FACT_SALES</strong></td>
+                                <td>SALES_DWH</td>
+                                <td>1,500,000</td>
+                                <td>1,499,200</td>
+                                <td><strong style="color: #f44336;">800</strong></td>
+                                <td>08m 15s</td>
+                                <td><span class="status-badge status-completed">Completed</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>DIM_CUSTOMER</strong></td>
+                                <td>DWH_SCHEMA</td>
+                                <td>250,000</td>
+                                <td>249,650</td>
+                                <td><strong style="color: #f44336;">350</strong></td>
+                                <td>03m 22s</td>
+                                <td><span class="status-badge status-completed">Completed</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>AUDIT_LOG</strong></td>
+                                <td>AUDIT_SCHEMA</td>
+                                <td>75,000</td>
+                                <td>74,900</td>
+                                <td><strong style="color: #f44336;">100</strong></td>
+                                <td>01m 45s</td>
+                                <td><span class="status-badge status-completed">Completed</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card fade-in">
+                    <h2 class="section-header">
+                        <span class="icon">📁</span>
+                        Generated Files
+                    </h2>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+                        <div>
+                            <h4 style="margin-bottom: 1rem;">📂 DB_Sentinel_sql (8 files)</h4>
+                            <div class="file-list">
+                                <div class="file-item">
+                                    <span class="file-icon">📄</span>
+                                    <div class="file-info">
+                                        <div class="file-name">FACT_SALES_insert_20250612_143022.sql</div>
+                                        <div class="file-meta">Size: 156 KB | Modified: 2 minutes ago</div>
+                                    </div>
+                                    <div class="file-actions">
+                                        <button class="btn btn-secondary">⬇️</button>
+                                        <button class="btn btn-secondary">👁️</button>
+                                    </div>
+                                </div>
+                                <div class="file-item">
+                                    <span class="file-icon">📄</span>
+                                    <div class="file-info">
+                                        <div class="file-name">DIM_CUSTOMER_insert_20250612_143025.sql</div>
+                                        <div class="file-meta">Size: 89 KB | Modified: 2 minutes ago</div>
+                                    </div>
+                                    <div class="file-actions">
+                                        <button class="btn btn-secondary">⬇️</button>
+                                        <button class="btn btn-secondary">👁️</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 style="margin-bottom: 1rem;">📂 DB_Sentinel_audit (1 file)</h4>
+                            <div class="file-list">
+                                <div class="file-item">
+                                    <span class="file-icon">📋</span>
+                                    <div class="file-info">
+                                        <div class="file-name">comparison_audit_20250612_143020.log</div>
+                                        <div class="file-meta">Size: 245 KB | Modified: 1 minute ago</div>
+                                    </div>
+                                    <div class="file-actions">
+                                        <button class="btn btn-secondary">⬇️</button>
+                                        <button class="btn btn-secondary">👁️</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 style="margin-bottom: 1rem;">📂 DB_Sentinel_report (1 file)</h4>
+                            <div class="file-list">
+                                <div class="file-item">
+                                    <span class="file-icon">📊</span>
+                                    <div class="file-info">
+                                        <div class="file-name">comparison_report_20250612_143030.txt</div>
+                                        <div class="file-meta">Size: 12 KB | Modified: 1 minute ago</div>
+                                    </div>
+                                    <div class="file-actions">
+                                        <button class="btn btn-secondary">⬇️</button>
+                                        <button class="btn btn-secondary">👁️</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Page -->
+            <div class="page" id="logs-page">
+                <div class="card fade-in">
+                    <h2 class="section-header">
+                        <span class="icon">📝</span>
+                        Execution Logs
+                    </h2>
+                    
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem; align-items: center;">
+                        <label>
+                            <strong>Log Level Filter:</strong>
+                            <select class="form-select" style="width: auto; margin-left: 0.5rem;">
+                                <option>ALL</option>
+                                <option>DEBUG</option>
+                                <option>INFO</option>
+                                <option>WARNING</option>
+                                <option>ERROR</option>
+                            </select>
+                        </label>
+                        <label style="display: flex; align-items: center;">
+                            <input type="checkbox" checked style="margin-right: 0.5rem;">
+                            <span>🔄 Auto-refresh</span>
+                        </label>
+                        <button class="btn btn-secondary">🗑️ Clear Logs</button>
+                    </div>
+
+                    <div class="log-viewer">
+                        <div class="log-line">
+                            <span class="log-timestamp">2025-06-12 14:30:15</span> - <span class="log-level-info">INFO</span> - DB Sentinel Utility initialized
+                        </div>
+                        <div class="log-line">
+                            <span class="log-timestamp">2025-06-12 14:30:16</span> - <span class="log-level-info">INFO</span> - Loaded configuration from config.yaml
+                        </div>
+                        <div class="log-line">
+                            <span class="log-timestamp">2025-06-12 14:30:17</span> - <span class="log-level-info">INFO</span> - Initialized connection pool with 12 connections
+                        </div>
+                        <div class="log-line">
+                            <span class="log-timestamp">2025-06-12 14:30:18</span> - <span class="log-level-info">INFO</span> - Starting comparison of SALES_DWH.FACT_SALES
+                        </div>
+                        <div class="log-line">
+                            <span class="log-timestamp">2025-06-12 14:30:19</span> - <span class="log-level-info">INFO</span> - Source rows: 1,500,000, Target rows: 1,499,200
+                        </div>
+                        <div class="log-line">
+                            <span class="log-timestamp">2025-06-12 14:30:20</span> - <span class="log-level-warning">WARNING</span> - Found 800 mismatches in FACT_SALES
+                        </div>
+                        <div class="log-line">
+                            <span class="log-timestamp">2025-06-12 14:35:42</span> - <span class="log-level-info">INFO</span> - Generated 650 INSERT statements for batch 15
+                        </div>
+                        <div class="log-line">
+                            <span class="log-timestamp">2025-06-12 14:35:43</span> - <span class="log-level-info">INFO</span> - Generated 150 UPDATE statements for batch 15
+                        </div>
+                        <div class="log-line">
+                            <span class="log-timestamp">2025-06-12 14:38:33</span> - <span class="log-level-info">INFO</span> - Completed comparison of FACT_SALES: 800 mismatches found
+                        </div>
+                        <div class="log-line">
+                            <span class="log-timestamp">2025-06-12 14:38:34</span> - <span class="log-level-info">INFO</span> - Starting comparison of DWH_SCHEMA.DIM_CUSTOMER
+                        </div>
+                        <div class="log-line">
+                            <span class="log-timestamp">2025-06-12 14:41:56</span> - <span class="log-level-info">INFO</span> - Completed comparison of DIM_CUSTOMER: 350 mismatches found
+                        </div>
+                        <div class="log-line">
+                            <span class="log-timestamp">2025-06-12 14:43:41</span> - <span class="log-level-info">INFO</span> - Table comparison completed
+                        </div>
+                        <div class="log-line">
+                            <span class="log-timestamp">2025-06-12 14:43:42</span> - <span class="log-level-info">INFO</span> - Generated comparison report: DB_Sentinel_report/comparison_report_20250612_143030.txt
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div class="page" id="settings-page">
+                <div class="card fade-in">
+                    <h2 class="section-header">
+                        <span class="icon">📁</span>
+                        Configuration Management
+                    </h2>
+                    
+                    <div class="form-grid">
+                        <div>
+                            <h4 style="margin-bottom: 1rem;">💾 Save Configuration</h4>
+                            <div class="form-group">
+                                <label class="form-label">Configuration Name</label>
+                                <input type="text" class="form-input" value="production_config" placeholder="Enter configuration name">
+                            </div>
+                            <button class="btn btn-success">
+                                <span class="icon">💾</span>
+                                Save Current Config
+                            </button>
+                        </div>
+                        
+                        <div>
+                            <h4 style="margin-bottom: 1rem;">📁 Load Configuration</h4>
+                            <div class="form-group">
+                                <label class="form-label">Select Configuration</label>
+                                <select class="form-select">
+                                    <option>production_config.yaml</option>
+                                    <option>staging_config.yaml</option>
+                                    <option>test_config.yaml</option>
+                                    <option>backup_config.yaml</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary">
+                                <span class="icon">📁</span>
+                                Load Selected Config
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card fade-in">
+                    <h2 class="section-header">
+                        <span class="icon">🔄</span>
+                        Import/Export Configuration
+                    </h2>
+                    
+                    <div class="form-grid">
+                        <div>
+                            <h4 style="margin-bottom: 1rem;">📤 Upload Configuration</h4>
+                            <input type="file" accept=".yaml,.yml" style="margin-bottom: 1rem;">
+                            <div class="form-help">Upload a YAML configuration file</div>
+                        </div>
+                        
+                        <div>
+                            <h4 style="margin-bottom: 1rem;">📥 Download Configuration</h4>
+                            <button class="btn btn-primary">
+                                <span class="icon">⬇️</span>
+                                Download Current Config
+                            </button>
+                            <div class="form-help">Download current configuration as YAML file</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card fade-in">
+                    <h2 class="section-header">
+                        <span class="icon">ℹ️</span>
+                        Application Information
+                    </h2>
+                    
+                    <div class="form-grid">
+                        <div>
+                            <div class="alert alert-info">
+                                <strong>DB Sentinel Utility v1.0.0</strong><br><br>
+                                Oracle Database Table Comparison Tool<br><br>
+                                <strong>Features:</strong><br>
+                                • Multi-threaded comparison<br>
+                                • Row-level hashing<br>
+                                • SQL generation<br>
+                                • Restart capability<br>
+                                • Comprehensive auditing
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="alert alert-info">
+                                <strong>System Requirements</strong><br><br>
+                                • Python 3.8+<br>
+                                • Oracle Client<br>
+                                • 4GB+ RAM recommended<br>
+                                • Network access to databases<br><br>
+                                <strong>Support</strong><br><br>
+                                Check logs for troubleshooting
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Page Navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Remove active class from all nav items and pages
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+                
+                // Add active class to clicked nav item
+                this.classList.add('active');
+                
+                // Show corresponding page
+                const pageId = this.getAttribute('data-page') + '-page';
+                const targetPage = document.getElementById(pageId);
+                if (targetPage) {
+                    targetPage.classList.add('active');
+                    targetPage.classList.add('fade-in');
+                }
+            });
+        });
+
+        // Status Updates (Demo)
+        function updateStatus() {
+            const statusDot = document.querySelector('.status-dot');
+            const statusText = document.querySelector('.status-indicator span:last-child');
+            
+            // Simulate different statuses
+            const statuses = [
+                { class: 'status-ready', text: 'Ready' },
+                { class: 'status-running', text: 'Running...' },
+                { class: 'status-ready', text: 'Completed' }
+            ];
+            
+            let currentIndex = 0;
+            setInterval(() => {
+                const status = statuses[currentIndex % statuses.length];
+                statusDot.className = 'status-dot ' + status.class;
+                statusText.textContent = status.text;
+                currentIndex++;
+            }, 5000);
+        }
+
+        // Progress Bar Animation (Demo)
+        function animateProgressBars() {
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach((bar, index) => {
+                const targetWidth = [75, 100, 100][index] || 0;
+                let currentWidth = 0;
+                
+                const interval = setInterval(() => {
+                    if (currentWidth < targetWidth) {
+                        currentWidth += 2;
+                        bar.style.width = currentWidth + '%';
+                        
+                        // Update percentage text
+                        const label = bar.parentElement.previousElementSibling;
+                        if (label) {
+                            const percentSpan = label.querySelector('span:last-child');
+                            if (percentSpan) {
+                                percentSpan.textContent = currentWidth + '%';
+                            }
+                        }
+                    } else {
+                        clearInterval(interval);
+                    }
+                }, 50);
+            });
+        }
+
+        // Connection Test Simulation
+        document.querySelectorAll('.btn').forEach(btn => {
+            if (btn.textContent.includes('Test Connection')) {
+                btn.addEventListener('click', function() {
+                    const originalText = this.innerHTML;
+                    this.innerHTML = '<span class="icon">⏳</span>Testing...';
+                    this.disabled = true;
+                    
+                    setTimeout(() => {
+                        this.innerHTML = originalText;
+                        this.disabled = false;
+                        
+                        // Show success message
+                        const connectionTest = this.nextElementSibling;
+                        if (connectionTest) {
+                            connectionTest.style.display = 'block';
+                            connectionTest.classList.add('fade-in');
+                        }
+                    }, 2000);
+                });
+            }
+        });
+
+        // Log Auto-refresh Simulation
+        function simulateLogUpdates() {
+            const logViewer = document.querySelector('.log-viewer');
+            if (!logViewer) return;
+            
+            const newLogMessages = [
+                '<div class="log-line"><span class="log-timestamp">2025-06-12 14:44:01</span> - <span class="log-level-info">INFO</span> - Connection pool closed</div>',
+                '<div class="log-line"><span class="log-timestamp">2025-06-12 14:44:02</span> - <span class="log-level-info">INFO</span> - Cleanup completed</div>',
+                '<div class="log-line"><span class="log-timestamp">2025-06-12 14:44:03</span> - <span class="log-level-info">INFO</span> - DB Sentinel process finished successfully</div>'
+            ];
+            
+            let messageIndex = 0;
+            setInterval(() => {
+                if (messageIndex < newLogMessages.length) {
+                    logViewer.innerHTML += newLogMessages[messageIndex];
+                    logViewer.scrollTop = logViewer.scrollHeight;
+                    messageIndex++;
+                }
+            }, 3000);
+        }
+
+        // Initialize demos
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatus();
+            
+            // Start progress animation when on execution page
+            setTimeout(() => {
+                if (document.getElementById('execution-page').classList.contains('active')) {
+                    animateProgressBars();
+                }
+            }, 1000);
+            
+            simulateLogUpdates();
+        });
+
+        // Button click animations
+        document.querySelectorAll('.btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                // Create ripple effect
+                const ripple = document.createElement('span');
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.cssText = `
+                    position: absolute;
+                    width: ${size}px;
+                    height: ${size}px;
+                    left: ${x}px;
+                    top: ${y}px;
+                    background: rgba(255,255,255,0.5);
+                    border-radius: 50%;
+                    transform: scale(0);
+                    animation: ripple 0.6s linear;
+                    pointer-events: none;
+                `;
+                
+                this.style.position = 'relative';
+                this.style.overflow = 'hidden';
+                this.appendChild(ripple);
+                
+                setTimeout(() => {
+                    ripple.remove();
+                }, 600);
+            });
+        });
+
+        // Add ripple animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                to {
+                    transform: scale(4);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
